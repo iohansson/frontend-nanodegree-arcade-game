@@ -29,6 +29,9 @@ var Engine = (function(global) {
     canvas.height = 606;
     doc.body.appendChild(canvas);
 
+    // Setup canvas for score display
+    ctx.font = '20px Georgia';
+
     /* This function serves as the kickoff point for the game loop itself
      * and handles properly calling the update and render methods.
      */
@@ -152,6 +155,10 @@ var Engine = (function(global) {
             enemy.render();
         });
 
+        allCollectibles.forEach(function(collectible) {
+            collectible.render();
+        });
+
         player.render();
     }
 
@@ -172,7 +179,10 @@ var Engine = (function(global) {
         'images/water-block.png',
         'images/grass-block.png',
         'images/enemy-bug.png',
-        'images/char-boy.png'
+        'images/char-boy.png',
+        'images/star.png',
+        'images/key.png',
+        'images/selector.png'
     ]);
     Resources.onReady(init);
 
