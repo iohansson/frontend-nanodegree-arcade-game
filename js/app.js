@@ -4,20 +4,56 @@ var allEnemies = [],
     rows = 6,
     cols = 5;
 
+// Helper functions
+
+// randomFromRange
+function randomIntFromRange(min, max) {
+    return Math.floor(Math.random() * (max - min) + min);
+}
+
+// randomChoice
+function randomChoiceFromArray(arr) {
+    return arr[randomIntFromRange(0, arr.length-1)];
+}
+
+// Base class for different entities in game
+// helps to maintain code DRY
+var Entity = function() {
+
+};
+
+// Draws entity on the game field
+Entity.prototype.render = function() {
+    ctx.drawImage(Resources.get(this.sprite), this.x, this.y);
+};
+
+// Get current row of entity
+Entity.prototype.getRow = function() {
+    return this.y < 0 ? 0 : Math.ceil(this.y / rowHeight);
+};
+
+// Get current column of entity
+Entity.prototype.getCol = function() {
+    return Math.floor(this.x / colLength);
+};
+
 // Enemies our player must avoid
-var Enemy = function(speed, row, col) {
+var Enemy = function(speed, row) {
     // Variables applied to each of our instances go here,
     // we've provided one for you to get started
 
     // The image/sprite for our enemies, this uses
     // a helper we've provided to easily load images
     this.sprite = 'images/enemy-bug.png';
-    this.speed = speed;
+    this.speed = randomIntFromRange(50, 150);
     
-    this.x = col * colLength;
-    this.y = row * rowHeight - 20;
+    this.x = -colLength;
+    this.y = randomChoiceFromArray([1,2,3]) * rowHeight - 20;
 
 };
+
+Enemy.prototype = Object.create(Entity.prototype);
+Enemy.prototype.constructor = Enemy;
 
 // Update the enemy's position, required method for game
 // Parameter: dt, a time delta between ticks
@@ -29,13 +65,20 @@ Enemy.prototype.update = function(dt) {
 
     if (this.x >= cols * colLength) {
         allEnemies.splice(allEnemies.indexOf(this),1);
-        allEnemies.push(new Enemy(this.speed, 0, 1));
+        allEnemies.push(new Enemy());
+    }
+
+    this.checkCollisions();
+};
+
+Enemy.prototype.checkCollisions = function() {
+    if (this.collidesWith(player)) {
+        player.die();
     }
 };
 
-// Draw the enemy on the screen, required method for game
-Enemy.prototype.render = function() {
-    ctx.drawImage(Resources.get(this.sprite), this.x, this.y);
+Enemy.prototype.collidesWith = function(player) {
+    return this.getRow() === player.getRow() && Math.abs((this.x + colLength / 2) - (player.x + colLength / 2)) < (colLength - 30);
 };
 
 // Now write your own player class
@@ -48,9 +91,8 @@ var Player = function(row, col) {
     this.y = row * rowHeight - 10;
 };
 
-Player.prototype.render = function() {
-    ctx.drawImage(Resources.get(this.sprite), this.x, this.y);
-};
+Player.prototype = Object.create(Entity.prototype);
+Player.prototype.constructor = Player;
 
 Player.prototype.handleInput = function(key) {
     switch (key) {
@@ -79,14 +121,18 @@ Player.prototype.move = function(dx, dy) {
     }
 };
 
-Player.prototype.update = function(x, y) {
-    
+Player.prototype.die = function() {
+    player = new Player(5, 2);
 };
+
+// No need to update anything so far in this function
+Player.prototype.update = function() {};
+
 // Now instantiate your objects.
 // Place all enemy objects in an array called allEnemies
 // Place the player object in a variable called player
-allEnemies.push(new Enemy(50, 1, 2));
-allEnemies.push(new Enemy(30, 2, 0));
+allEnemies.push(new Enemy());
+allEnemies.push(new Enemy());
 var player = new Player(5, 2);
 
 
