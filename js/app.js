@@ -5,7 +5,7 @@ var allEnemies = [],
     colLength = 101,
     rows = 6,
     cols = 5,
-    keyIssued = false;
+    player;
 
 // Helper functions
 
@@ -18,6 +18,10 @@ function randomIntFromRange(min, max) {
 function randomChoiceFromArray(arr) {
     return arr[randomIntFromRange(0, arr.length-1)];
 }
+
+// events for the game
+var scoreReached = new Event('game.scoreReached');
+var gotTheKey = new Event('game.gotTheKey');
 
 // Base class for different entities in game
 // helps to maintain code DRY
@@ -133,9 +137,9 @@ Player.prototype.die = function() {
 
 Player.prototype.update = function() {
     this.checkCollisions();
-    this.updateScore();
-    if (this.score >= this.goal && !keyIssued) {
-        this.pursueTheKey();
+    if (this.score >= this.goal) {
+        document.dispatchEvent(scoreReached);
+        this.score = 0;
     } 
 };
 
@@ -150,41 +154,24 @@ Player.prototype.checkCollisions = function() {
             }
             if (collectible instanceof Key) {
                 this.hasKey = true;
-                collectible.destroy();
-                allCollectibles = [];
+                document.dispatchEvent(gotTheKey);
             }
         }
     }
 };
 
-Player.prototype.updateScore = function() {
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, 300, 40);
-    ctx.fillStyle = '#000';
-    if (this.hasKey) {
-        ctx.fillText('Run away!', 10, 30);
-    } else if (this.score >= this.goal) {
-        ctx.fillText('Get the key!', 10, 30);
-    } else {
-        ctx.fillText('Score: ' + this.score, 10, 30);
-    }
+Player.prototype.getScore = function() {
+    return this.score;
 };
 
-Player.prototype.pursueTheKey = function() {
-    keyIssued = true;
-    
-    // destroy all the timeouts
-    for (var i = 0, x = allCollectibles.length; i < x; i++) {
-        allCollectibles[i].destroy();
-    }
+var Collectible = function(expirationTime, score) {    
+    this.expirationTime = expirationTime;
+    this.score = score || 0;
 
-    // and clear the array
-    allCollectibles = [];
+    this.x = randomIntFromRange(0, cols-1) * colLength;
+    this.y = randomChoiceFromArray([1,2,3]) * rowHeight - 20;
 
-    allCollectibles.push(new Key(3000));
-};
-
-var Collectible = function(score, expirationTime) {    
+    this.setExpire(this, expirationTime);
 };
 
 Collectible.prototype = Object.create(Entity.prototype);
@@ -199,56 +186,93 @@ Collectible.prototype.setExpire = function(self, time) {
 Collectible.prototype.refresh = function() {
     this.destroy();
     allCollectibles.splice(allCollectibles.indexOf(this),1);
-    allCollectibles.push(new this.constructor(this.score, this.expirationTime)); 
+    allCollectibles.push(new this.constructor(this.expirationTime, this.score)); 
 };
 
 Collectible.prototype.destroy = function() {
     window.clearTimeout(this.expire);
 }
 
-var Star = function(score, expirationTime) {
-    this.score = score;
-    this.expirationTime = expirationTime;
+var Star = function(expirationTime, score) {
+    Collectible.call(this, expirationTime, score);
 
-    this.sprite = 'images/star.png';
-
-    this.x = randomIntFromRange(0, cols-1) * colLength;
-    this.y = randomChoiceFromArray([1,2,3]) * rowHeight - 20;
-
-    this.setExpire(this, expirationTime);
+    this.sprite = 'images/star.png';   
 };
 
 Star.prototype = Object.create(Collectible.prototype);
 Star.prototype.constructor = Star;
 
-var Key = function(expirationTime) {
-    this.expirationTime = expirationTime;
+var Key = function(expirationTime, score) {
+    Collectible.call(this, expirationTime, score);
 
     this.sprite = 'images/key.png';
-
-    this.x = randomIntFromRange(0, cols-1) * colLength;
-    this.y = randomChoiceFromArray([1,2,3]) * rowHeight - 20;
-
-    this.setExpire(this, expirationTime);
 };
 
 Key.prototype = Object.create(Collectible.prototype);
 Key.prototype.constructor = Key;
 
-Key.prototype.refresh = function() {
-    window.clearTimeout(this.expire);
-    allCollectibles.splice(allCollectibles.indexOf(this),1);
-    allCollectibles.push(new this.constructor(this.expirationTime)); 
+// Game class
+var Game = function(numEnemies) {
+    this.numEnemies = numEnemies;
+    this.level = 0; 
+};
+
+Game.prototype.start = function() {
+    for (var i=0; i < this.numEnemies; i++) {
+        allEnemies.push(new Enemy());
+    }
+
+    allCollectibles.push(new Star(5000, 100));
+
+    player = new Player(5, 2, 500);
+};
+
+Game.prototype.destroyCollectibles = function() {
+    // destroy all the timeouts
+    for (var i = 0, x = allCollectibles.length; i < x; i++) {
+        allCollectibles[i].destroy();
+    }
+
+    // and clear the array
+    allCollectibles = [];
+};
+
+Game.prototype.proceedToKey = function() {
+    this.destroyCollectibles();
+    allCollectibles.push(new Key(3000));
+    this.level = 1;
+};
+
+Game.prototype.proceedToExit = function() {
+    this.destroyCollectibles();
+    this.level = 2;
+};
+
+Game.prototype.update = function() {
+    this.renderScore();
+};
+
+Game.prototype.renderScore = function() {
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, 300, 40);
+    ctx.fillStyle = '#000';
+    switch (this.level) {
+        case 0:
+            ctx.fillText('Score: ' + player.getScore(), 10, 30);
+            break;
+        case 1:
+            ctx.fillText('Get the key!', 10, 30);
+            break;
+        case 2:
+            ctx.fillText('Run away!', 10, 30);
+    }
 };
 
 // Now instantiate your objects.
 // Place all enemy objects in an array called allEnemies
 // Place the player object in a variable called player
-allEnemies.push(new Enemy());
-allEnemies.push(new Enemy());
-allCollectibles.push(new Star(100, 5000));
-var player = new Player(5, 2, 500);
-
+var game = new Game(3);
+game.start();
 
 // This listens for key presses and sends the keys to your
 // Player.handleInput() method. You don't need to modify this.
@@ -261,4 +285,13 @@ document.addEventListener('keyup', function(e) {
     };
 
     player.handleInput(allowedKeys[e.keyCode]);
+});
+
+// listen for custom game events
+document.addEventListener('game.scoreReached', function() {
+    game.proceedToKey();
+});
+
+document.addEventListener('game.gotTheKey', function() {
+    game.proceedToExit();
 });
