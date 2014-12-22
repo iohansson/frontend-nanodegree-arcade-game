@@ -1,3 +1,5 @@
+'use strict';
+
 /**
  * Declaring and initializing variables necessary for the game
  * allEnemies holds all the enemy vehicles in the game
@@ -9,12 +11,12 @@
  * player game's hero 
  */
 var allEnemies = [],
-    allCollectibles = [],
-    rowHeight = 83,
-    colLength = 101,
-    rows = 6,
-    cols = 5,
-    player;
+  allCollectibles = [],
+  rowHeight = 83,
+  colLength = 101,
+  rows = 6,
+  cols = 5,
+  player;
 
 // Helper functions
 
@@ -25,7 +27,7 @@ var allEnemies = [],
  * @return {number} an integer between min and max
  */
 function randomIntFromRange(min, max) {
-    return Math.floor(Math.random() * (max - min + 1) + min);
+  return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
 /**
@@ -34,7 +36,7 @@ function randomIntFromRange(min, max) {
  * @return value from an array
  */
 function randomChoiceFromArray(arr) {
-    return arr[randomIntFromRange(0, arr.length-1)];
+  return arr[randomIntFromRange(0, arr.length - 1)];
 }
 
 // Events for the game
@@ -42,22 +44,22 @@ function randomChoiceFromArray(arr) {
 /**
  * event fires when score reached the goal
  */
-var scoreReached = new Event('game.scoreReached');
+var scoreReached = new Event('game.scoreReached'),
 
 /**
  * event fires when player gets the key
  */
-var gotTheKey = new Event('game.gotTheKey');
+  gotTheKey = new Event('game.gotTheKey'),
 
 /** 
  * event fires when player dies
  */
-var playerDied = new Event('game.playerDied');
+  playerDied = new Event('game.playerDied'),
 
 /** 
  * event fires when player wins!
  */
-var epicWin = new Event('game.epicWin');
+  epicWin = new Event('game.epicWin');
 
 /**
  * Class holding basic methods necessary for
@@ -105,7 +107,7 @@ Entity.prototype.collidesWith = function(anotherEntity) {
 var Enemy = function() {
     this.sprite = 'images/enemy-bug.png'; // sprite for enemy entity
     this.speed = randomIntFromRange(50, 150); // speed is generated in range from 50 to 150
-    
+
     this.x = -colLength; // enemy starts off the grid
     this.y = randomChoiceFromArray([1,2,3]) * rowHeight - 20; // row calculated by random choice from available rows
 
@@ -205,7 +207,7 @@ Player.prototype.move = function(dx, dy) {
  * fires an event to end the game
  */
 Player.prototype.die = function() {
-    document.dispatchEvent('game.playerDied');
+    document.dispatchEvent(playerDied);
 };
 
 /** 
